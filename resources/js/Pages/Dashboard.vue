@@ -178,8 +178,9 @@ const unmuteAndPlayAlarm = () => {
 const showReportOverlay = (emergencyId) => {
   const emergency = emergenciesData.value[emergencyId];
   if (emergency) {
+    const residentName = `${emergency.personalInfo?.firstname || 'Unknown'} ${emergency.personalInfo?.lastname || ''}`.trim();
     selectedEmergency.value = {
-      residentName: emergency.residentName || 'Unknown',
+      residentName: residentName || 'Unknown',
       timestamp: emergency.timestamp || 'Unknown',
       emergencyType: emergency.emergencyType || 'Unknown',
     };
@@ -192,6 +193,7 @@ const showReportOverlay = (emergencyId) => {
   }
   isReportOverlayVisible.value = true;
 };
+
 
 const sendReport = () => {
   console.log('Sending report with message:', selectedReplyMessage.value);

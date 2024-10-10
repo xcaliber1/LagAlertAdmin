@@ -21,6 +21,7 @@ Route::get('/dashboard', function () {
     $municipalities = [
         'Nagcarlan' => ['latitude' => 14.1263, 'longitude' => 121.4208],
         'San Pablo City' => ['latitude' => 14.0667, 'longitude' => 121.3236],
+        'Santa Cruz' => ['latitude' => 14.2800, 'longitude' => 121.4206], // Added Santa Cruz, Laguna
         // Add more municipalities here with their coordinates
     ];
 

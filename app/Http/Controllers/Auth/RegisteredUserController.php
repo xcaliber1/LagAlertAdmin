@@ -30,24 +30,35 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        \Log::info('Incoming registration data:', $request->all());
+    
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => 'required|string|email|max:255|unique:users',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'municipality' => 'required|string|max:255', // Added validation for municipality
+            'municipality' => 'required|string|max:255',
+            // For debugging purposes, let's temporarily relax these validations
+            // 'qr_code_data' => 'required|string',
+            // 'qr_code_id' => 'required|string',
         ]);
-
+    
+        \Log::info('Data after validation:', $request->all());
+    
+        // Create the user with the QR code data and ID
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'municipality' => $request->municipality, // Added municipality
+            'municipality' => $request->municipality,
+            'qr_code_data' => $request->qr_code_data, // Save QR code data to the database
+            'qr_code_id' => $request->qr_code_id,     // Save QR code ID to the database
         ]);
-
+    
+    
         event(new Registered($user));
-
         Auth::login($user);
-
+    
         return redirect(route('dashboard'));
     }
+    
 }
