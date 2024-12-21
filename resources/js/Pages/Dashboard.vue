@@ -6,6 +6,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref as dbRef, onValue } from 'firebase/database';
+import { getFirestore, collection, addDoc } from 'firebase/firestore'; // Firestore imports
 
 const { props } = inertiaUsePage();
 const map = ref(null);
@@ -14,6 +15,8 @@ const emergenciesData = ref({});
 const isReportOverlayVisible = ref(false);
 const selectedEmergency = ref({
   residentName: 'Unknown',
+  residentEmail: 'Not provided',
+  phoneNumber: 'Not available',
   timestamp: 'Unknown',
   emergencyType: 'Unknown',
 });
@@ -21,6 +24,7 @@ const selectedDepartment = ref('');
 const selectedReplyMessage = ref('');
 const showPreMadeReplies = ref(false);
 
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAFYSmtIlqROIYw_X2viPmA6xgUjIrJ3N0",
   authDomain: "lels-471ca.firebaseapp.com",
@@ -32,8 +36,10 @@ const firebaseConfig = {
   databaseURL: "https://lels-471ca-default-rtdb.firebaseio.com/",
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
+const firestore = getFirestore(app); // Initialize Firestore
 
 const initializeMap = () => {
   map.value = L.map('map').setView([props.coordinates.latitude, props.coordinates.longitude], 13);
@@ -71,10 +77,10 @@ const createPopupContent = (emergency, key) => {
   const container = document.createElement('div');
   const residentName = `${emergency.personalInfo?.firstname || 'Unknown'} ${emergency.personalInfo?.lastname || ''}`.trim();
   const contactNumber = emergency.personalInfo?.phoneNumber || 'Not available';
-  
+
   container.innerHTML = `
     <div class="p-4" style="max-height: 400px; overflow-y: auto;">
-      <div class="font-bold mb-2">${residentName || 'undefined'} <span class="text-gray-500">+63${contactNumber || 'undefined'}</span></div>
+      <div class="font-bold mb-2">${residentName} <span class="text-gray-500">(${contactNumber})</span></div>
       <div class="cursor-pointer mb-1 shadow-md p-2 rounded">
         <div class="flex justify-between items-center">
           <span>Emergency Details</span>
@@ -179,14 +185,21 @@ const showReportOverlay = (emergencyId) => {
   const emergency = emergenciesData.value[emergencyId];
   if (emergency) {
     const residentName = `${emergency.personalInfo?.firstname || 'Unknown'} ${emergency.personalInfo?.lastname || ''}`.trim();
+    const residentEmail = emergency.personalInfo?.email || 'Not provided';
+    const phoneNumber = emergency.personalInfo?.phoneNumber || 'Not available';
+
     selectedEmergency.value = {
-      residentName: residentName || 'Unknown',
+      residentName: residentName,
+      residentEmail: residentEmail,
+      phoneNumber: phoneNumber,
       timestamp: emergency.timestamp || 'Unknown',
       emergencyType: emergency.emergencyType || 'Unknown',
     };
   } else {
     selectedEmergency.value = {
       residentName: 'Unknown',
+      residentEmail: 'Not provided',
+      phoneNumber: 'Not available',
       timestamp: 'Unknown',
       emergencyType: 'Unknown',
     };
@@ -194,10 +207,26 @@ const showReportOverlay = (emergencyId) => {
   isReportOverlayVisible.value = true;
 };
 
+const sendReport = async () => {
+  try {
+    // Save the report to Firestore 'Reported' collection
+    await addDoc(collection(firestore, 'Reported'), {
+      residentName: selectedEmergency.value.residentName,
+      email: selectedEmergency.value.residentEmail,
+      phoneNumber: selectedEmergency.value.phoneNumber,
+      timestamp: selectedEmergency.value.timestamp,
+      emergencyType: selectedEmergency.value.emergencyType,
+      department: selectedDepartment.value,
+      message: selectedReplyMessage.value,
+      status: 'reported',
+      created_at: new Date().toISOString(),
+    });
 
-const sendReport = () => {
-  console.log('Sending report with message:', selectedReplyMessage.value);
-  isReportOverlayVisible.value = false;
+    console.log('Report sent successfully');
+    isReportOverlayVisible.value = false;
+  } catch (error) {
+    console.error('Error sending report:', error);
+  }
 };
 
 const currentTime = ref(formatCurrentTime(new Date()));
@@ -236,7 +265,7 @@ onMounted(() => {
         <div class="w-1/3 h-full p-4 bg-gray-100 flex flex-col items-center">
           <div class="mt-5 text-center mb-5 w-full">as of {{ currentTime }}</div>
           <div class="mb-3 text-8xl text-center text-red-500">{{ totalEmergencies }}</div>
-          <div class="mb-20 text-center">Current Emergencies in Laguna<!--{{ props.userMunicipality }}--></div>
+          <div class="mb-20 text-center">Current Emergencies in Laguna</div>
           <div class="mt-4 grid grid-cols-2 gap-10 w-full">
             <div v-for="(value, type) in emergencyTypes" :key="type" class="flex flex-col items-center justify-center">
               <div :class="['w-12 h-12 mb-2 rounded-full flex items-center justify-center', icons[type]]">
@@ -265,7 +294,11 @@ onMounted(() => {
             <div class="mb-4">
               <div class="flex justify-between items-center">
                 <span class="font-semibold">Resident:</span>
-                <span>{{ selectedEmergency.residentName }}</span>
+                <span>{{ selectedEmergency.residentName }} ({{ selectedEmergency.phoneNumber }})</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="font-semibold">Email:</span>
+                <span>{{ selectedEmergency.residentEmail }}</span>
               </div>
               <div class="flex justify-between items-center">
                 <span class="font-semibold">Sent On:</span>
@@ -332,7 +365,6 @@ export default {
         'Fire Department',
         'Police Department',
         'Medical Services',
-        'Public Works',
         'Emergency Management',
         'Other'
       ],
@@ -367,6 +399,8 @@ export default {
       isReportOverlayVisible: false,
       selectedEmergency: {
         residentName: 'Unknown',
+        residentEmail: 'Not provided',
+        phoneNumber: 'Not available',
         timestamp: 'Unknown',
         emergencyType: 'Unknown'
       },
@@ -379,12 +413,16 @@ export default {
       if (emergency) {
         this.selectedEmergency = {
           residentName: emergency.residentName || 'Unknown',
+          residentEmail: emergency.personalInfo?.email || 'Not provided',
+          phoneNumber: emergency.personalInfo?.phoneNumber || 'Not available',
           timestamp: emergency.timestamp || 'Unknown',
           emergencyType: emergency.emergencyType || 'Unknown'
         };
       } else {
         this.selectedEmergency = {
           residentName: 'Unknown',
+          residentEmail: 'Not provided',
+          phoneNumber: 'Not available',
           timestamp: 'Unknown',
           emergencyType: 'Unknown'
         };
@@ -395,7 +433,6 @@ export default {
       return timestamp === 'Unknown' ? 'Unknown' : new Date(timestamp).toLocaleString();
     },
     sendReport() {
-      // Add your logic to handle the report sending here
       console.log('Sending report with message:', this.selectedReplyMessage);
       this.isReportOverlayVisible = false;
     },

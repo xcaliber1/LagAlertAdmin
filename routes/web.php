@@ -4,6 +4,10 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\ReportsHistoryController;
+
+Route::get('/reports/history', [ReportsHistoryController::class, 'index'])->name('reports.history');
+
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -21,7 +25,7 @@ Route::get('/dashboard', function () {
     $municipalities = [
         'Nagcarlan' => ['latitude' => 14.1263, 'longitude' => 121.4208],
         'San Pablo City' => ['latitude' => 14.0667, 'longitude' => 121.3236],
-        'Santa Cruz' => ['latitude' => 14.2800, 'longitude' => 121.4206], // Added Santa Cruz, Laguna
+        'Santa Cruz' => ['latitude' => 14.2800, 'longitude' => 121.4206],
         // Add more municipalities here with their coordinates
     ];
 
