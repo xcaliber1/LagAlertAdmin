@@ -187,6 +187,7 @@ const showReportOverlay = (emergencyId) => {
     const residentName = `${emergency.personalInfo?.firstname || 'Unknown'} ${emergency.personalInfo?.lastname || ''}`.trim();
     const residentEmail = emergency.personalInfo?.email || 'Not provided';
     const phoneNumber = emergency.personalInfo?.phoneNumber || 'Not available';
+    const locationName = emergency.location?.name || 'Unknown Location';
 
     selectedEmergency.value = {
       residentName: residentName,
@@ -194,6 +195,7 @@ const showReportOverlay = (emergencyId) => {
       phoneNumber: phoneNumber,
       timestamp: emergency.timestamp || 'Unknown',
       emergencyType: emergency.emergencyType || 'Unknown',
+      location: locationName, // Add location here
     };
   } else {
     selectedEmergency.value = {
@@ -202,10 +204,12 @@ const showReportOverlay = (emergencyId) => {
       phoneNumber: 'Not available',
       timestamp: 'Unknown',
       emergencyType: 'Unknown',
+      location: 'Unknown Location', // Default location
     };
   }
   isReportOverlayVisible.value = true;
 };
+
 
 const sendReport = async () => {
   try {
@@ -214,6 +218,7 @@ const sendReport = async () => {
       residentName: selectedEmergency.value.residentName,
       email: selectedEmergency.value.residentEmail,
       phoneNumber: selectedEmergency.value.phoneNumber,
+      location: selectedEmergency.value.location, // Add the location here
       timestamp: selectedEmergency.value.timestamp,
       emergencyType: selectedEmergency.value.emergencyType,
       department: selectedDepartment.value,
@@ -228,6 +233,7 @@ const sendReport = async () => {
     console.error('Error sending report:', error);
   }
 };
+
 
 const currentTime = ref(formatCurrentTime(new Date()));
 const totalEmergencies = ref(0);
@@ -292,23 +298,24 @@ onMounted(() => {
           <!-- Dialog Body -->
           <div class="px-8 py-4">
             <div class="mb-4">
-              <div class="flex justify-between items-center">
-                <span class="font-semibold">Resident:</span>
-                <span>{{ selectedEmergency.residentName }} ({{ selectedEmergency.phoneNumber }})</span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="font-semibold">Email:</span>
-                <span>{{ selectedEmergency.residentEmail }}</span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="font-semibold">Sent On:</span>
-                <span>{{ formatTimestamp(selectedEmergency.timestamp) }}</span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="font-semibold">Incident Type:</span>
-                <span>{{ selectedEmergency.emergencyType }}</span>
-              </div>
-            </div>
+  <div class="flex justify-between items-center">
+    <span class="font-semibold">Resident:</span>
+    <span>{{ selectedEmergency.residentName }} ({{ selectedEmergency.phoneNumber }})</span>
+  </div>
+  <div class="flex justify-between items-center">
+    <span class="font-semibold">Email:</span>
+    <span>{{ selectedEmergency.residentEmail }}</span>
+  </div>
+  <div class="flex justify-between items-center">
+    <span class="font-semibold">Sent On:</span>
+    <span>{{ formatTimestamp(selectedEmergency.timestamp) }}</span>
+  </div>
+  <div class="flex justify-between items-center">
+    <span class="font-semibold">Incident Type:</span>
+    <span>{{ selectedEmergency.emergencyType }}</span>
+  </div>
+</div>
+
             <div class="mb-4">
               <label for="department" class="block text-sm font-semibold">Reporting to:</label>
               <select id="department" class="w-full p-2 mt-1 border rounded" v-model="selectedDepartment">
